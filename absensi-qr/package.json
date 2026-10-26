@@ -1,0 +1,17 @@
+{
+  "name": "absensi-qr",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistem absensi berbasis QR Code (backend Node.js + SQLite, tanpa dependency npm)",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "seed": "node --disable-warning=ExperimentalWarning scripts/seed.js",
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\"",
+    "backup": "node --disable-warning=ExperimentalWarning scripts/backup.js"
+  }
+}

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QR Absensi</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-role="">
+
+<!-- ===== Login ===== -->
+<div class="login" id="loginScreen">
+  <form class="logincard" id="loginForm" autocomplete="on">
+    <div class="brand logobrand"><div class="brandmark">▦</div><span id="loginAppName">QR Absensi</span></div>
+    <h2>Masuk</h2>
+    <p class="sub">Gunakan akun admin atau petugas absen.</p>
+    <div class="field"><label for="loginUser">Username</label><input id="loginUser" name="username" autocomplete="username" required></div>
+    <div class="field"><label for="loginPass">Password</label><input id="loginPass" name="password" type="password" autocomplete="current-password" required></div>
+    <div class="loginerror" id="loginError" role="alert"></div>
+    <button class="btn btn-primary full" id="loginBtn" type="submit">Masuk</button>
+  </form>
+</div>
+
+<div class="app is-hidden" id="appRoot">
+
+  <aside class="sidebar">
+    <div class="brand"><div class="brandmark">▦</div><span id="brandName">QR Absensi</span></div>
+
+    <nav class="nav" id="sidenav">
+      <button class="active" data-page="dashboard"><span class="ico">▦</span>Dashboard</button>
+      <button class="admin-only" data-page="pegawai"><span class="ico">♙</span>Master Data &amp; QR</button>
+      <button data-page="absensi"><span class="ico">▣</span>Monitoring Absensi</button>
+      <button class="admin-only" data-page="laporan"><span class="ico">▥</span>Export Hasil Absen</button>
+      <button data-page="jadwal"><span class="ico">◷</span>Jadwal Event</button>
+      <button class="admin-only" data-page="perangkat"><span class="ico">▣</span>Akun Petugas</button>
+      <button data-page="pengaturan"><span class="ico">⚙</span>Pengaturan</button>
+    </nav>
+
+    <div class="side-bottom"><span id="sideName">QR Absensi</span><br>© 2026</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="iconbtn" id="menuBtn" aria-label="Menu">☰</button>
+        <div><strong id="pageTitle">Dashboard</strong><div class="sub">Sistem manajemen kehadiran</div></div>
+      </div>
+      <div class="topright">
+        <span class="clock">◷ <b id="clock">--:--</b></span>
+        <div class="profile">
+          <div class="avatar" id="profileAvatar">A</div>
+          <div><strong id="profileName">—</strong><small id="profileRole">—</small></div>
+        </div>
+        <button class="btn btn-soft" id="logoutBtn">Keluar</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ===== Dashboard ===== -->
+      <section class="sectionpage active" id="page-dashboard">
+        <div class="welcome">
+          <div><h1 id="greeting">Selamat datang 👋</h1><p>Ringkasan kehadiran peserta pada event aktif.</p></div>
+          <div class="datepill" id="datePill">▣ &nbsp; —</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="staticon blue">♙</div><div><small>Total Peserta</small><strong id="stTotal">0</strong><small>Peserta aktif</small></div></div>
+          <div class="stat"><div class="staticon green">✓</div><div><small>Hadir</small><strong id="stHadir">0</strong><small id="stHadirPct">0% dari total</small></div></div>
+          <div class="stat"><div class="staticon orange">◷</div><div><small>Belum Absen</small><strong id="stBelum">0</strong><small id="stBelumPct">0% dari total</small></div></div>
+          <div class="stat"><div class="staticon red">×</div><div><small>Tidak Hadir</small><strong id="stTidak">0</strong><small id="stTidakPct">0% dari total</small></div></div>
+        </div>
+
+        <div class="layout">
+          <div class="leftcol">
+            <div class="split">
+              <div class="panel">
+                <div class="panelhead"><h2>Rekap Kehadiran</h2><span class="sub" id="recapEvent">—</span></div>
+                <div class="chartrow">
+                  <div class="donut" id="donut"></div>
+                  <div class="legend">
+                    <div class="legendrow"><span><i class="dot" style="background:#19b77a"></i>Hadir</span><b id="lgHadir">0</b></div>
+                    <div class="legendrow"><span><i class="dot" style="background:#f3a41a"></i>Belum absen</span><b id="lgBelum">0</b></div>
+                    <div class="legendrow"><span><i class="dot" style="background:#f0444c"></i>Tidak hadir</span><b id="lgTidak">0</b></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panelhead"><h2>Jam Kehadiran</h2><span class="badge muted" id="evBadge">—</span></div>
+                <div class="scheduleitem"><div class="scheduleicon green">◷</div><div><strong>Jam mulai</strong><small id="evStart">—</small></div></div>
+                <div class="scheduleitem"><div class="scheduleicon red">◷</div><div><strong>Jam selesai (absensi ditutup)</strong><small id="evEnd">—</small></div></div>
+                <button class="btn btn-soft full admin-only" style="margin-top:12px" data-go="jadwal">Kelola jadwal</button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panelhead">
+                <div><h2>Kehadiran Terbaru</h2><div class="sub">Peserta yang baru melakukan absen</div></div>
+                <button class="btn btn-soft" data-go="absensi">Lihat semua →</button>
+              </div>
+              <div class="tablewrap">
+                <table>
+                  <thead><tr><th>Nama Peserta</th><th>Jabatan</th><th>Datang</th><th>Status</th></tr></thead>
+                  <tbody id="recentRows"><tr><td colspan="4" class="empty">Memuat data…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="split">
+              <div class="panel">
+                <div class="panelhead"><h2>Event Aktif</h2><button class="btn btn-soft" data-go="jadwal">Lihat</button></div>
+                <div class="scheduleitem"><div class="scheduleicon blue">▣</div><div><strong id="evTitle">—</strong><small id="evMeta">—</small></div></div>
+              </div>
+              <div class="panel admin-only">
+                <div class="panelhead"><h2>Laporan Cepat</h2></div>
+                <div class="toolgrid">
+                  <button class="tool" data-export="PDF"><b>▤</b>PDF</button>
+                  <button class="tool" data-export="Excel"><b>▦</b>Excel</button>
+                  <button class="tool" data-go="laporan"><b>☷</b>Filter</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panelhead"><h2>Monitoring Log</h2><button class="btn btn-soft" data-go="absensi">Lihat semua</button></div>
+              <div id="logList"><div class="empty">Memuat data…</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Monitoring Absensi / Scan QR ===== -->
+      <section class="sectionpage" id="page-absensi">
+        <div class="welcome">
+          <div><h1>Absensi</h1><p id="attendanceInfo">Pantau catatan kehadiran peserta.</p></div>
+          <button class="btn btn-primary" id="scanBtn">▦ Mulai Scan QR</button>
+        </div>
+        <div class="panel">
+          <div class="panelhead">
+            <h2>Catatan Kehadiran</h2>
+            <div class="toolbar">
+              <input id="attendanceSearch" placeholder="Cari nama atau ID…">
+              <select id="statusFilter">
+                <option value="all">Semua status</option>
+                <option value="Hadir">Hadir</option>
+                <option value="Belum absen">Belum absen</option>
+                <option value="Tidak hadir">Tidak hadir</option>
+              </select>
+            </div>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Nama Peserta</th><th>Jabatan</th><th>Tanggal</th><th>Jam kedatangan</th><th>Status</th><th>Aksi</th></tr></thead>
+              <tbody id="fullAttendance"><tr><td colspan="6" class="empty">Memuat data…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Master Data Peserta ===== -->
+      <section class="sectionpage" id="page-pegawai">
+        <div class="welcome">
+          <div><h1>Data Peserta</h1><p>Kelola identitas peserta. QR dibuat otomatis untuk setiap peserta.</p></div>
+          <div class="toolbar">
+            <button class="btn btn-soft" id="templateBtn">⬇ Template CSV</button>
+            <button class="btn btn-soft" id="importBtn">⇪ Import CSV</button>
+            <button class="btn btn-soft" id="printQrBtn">🖨 Cetak Semua QR</button>
+            <button class="btn btn-primary" id="addEmployee">＋ Tambah Peserta</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panelhead"><h2>Master Data Peserta <span class="sub" id="employeeCount"></span></h2><input id="employeeSearch" placeholder="Cari nama, jabatan, atau ID…"></div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Nama</th><th>Jabatan</th><th>ID Peserta</th><th>Status</th><th>Aksi</th></tr></thead>
+              <tbody id="employeeRows"><tr><td colspan="5" class="empty">Memuat data…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Jadwal event ===== -->
+      <section class="sectionpage" id="page-jadwal">
+        <div class="welcome">
+          <div><h1>Jadwal Event</h1><p>Atur tanggal dan jam absensi. Di luar jam ini scan QR otomatis ditolak.</p></div>
+          <button class="btn btn-primary admin-only" id="newEvent">＋ Event Baru</button>
+        </div>
+        <div class="split">
+          <div class="panel admin-only">
+            <h2>Event Aktif</h2>
+            <div class="field"><label for="evFormName">Nama event</label><input id="evFormName"></div>
+            <div class="field"><label for="evFormDate">Tanggal</label><input id="evFormDate" type="date"></div>
+            <div class="field"><label for="evFormStart">Jam mulai absensi</label><input id="evFormStart" type="time"></div>
+            <div class="field">
+              <label for="evFormEnd">Jam selesai (absensi otomatis ditutup)</label>
+              <input id="evFormEnd" type="time">
+              <small class="sub">Setelah jam ini scan QR ditolak dan peserta yang belum hadir otomatis berstatus Tidak Hadir.</small>
+            </div>
+            <button class="btn btn-primary" id="saveEvent">Simpan Jadwal</button>
+            <div id="eventState" class="sub" style="margin-top:8px"></div>
+          </div>
+          <div class="panel">
+            <h2>Daftar Event</h2>
+            <div id="eventList"><div class="empty">Memuat data…</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Akun petugas ===== -->
+      <section class="sectionpage" id="page-perangkat">
+        <div class="welcome">
+          <div><h1>Akun Petugas</h1><p>Kelola akun yang dipakai petugas di pintu masuk dan lihat siapa yang sedang online.</p></div>
+          <button class="btn btn-primary" id="addUser">＋ Tambah Akun</button>
+        </div>
+        <div class="panel">
+          <h2>Akun &amp; Perangkat</h2>
+          <div id="userList"><div class="empty">Memuat data…</div></div>
+        </div>
+      </section>
+
+      <!-- ===== Laporan ===== -->
+      <section class="sectionpage" id="page-laporan">
+        <div class="welcome"><div><h1>Laporan Kehadiran</h1><p>Ekspor rekap dengan status Hadir, Belum absen, dan Tidak Hadir.</p></div></div>
+        <div class="panel">
+          <div class="panelhead"><h2>Filter Laporan</h2></div>
+          <div class="toolbar">
+            <label>Dari <input type="date" id="repFrom"></label>
+            <label>Sampai <input type="date" id="repTo"></label>
+            <select id="repJabatan"><option value="">Semua jabatan</option><option>Anggota</option><option>Ketua</option><option>Wakil</option></select>
+            <button class="btn btn-primary" id="applyReport">Terapkan Filter</button>
+          </div>
+        </div>
+        <div class="stats" style="margin-top:18px">
+          <div class="stat"><div class="staticon green">✓</div><div><small>Total Hadir</small><strong id="rpHadir">0</strong><small id="rpHadirPct">—</small></div></div>
+          <div class="stat"><div class="staticon red">×</div><div><small>Tidak Hadir</small><strong id="rpTidak">0</strong></div></div>
+          <div class="stat"><div class="staticon orange">◷</div><div><small>Belum Absen</small><strong id="rpBelum">0</strong></div></div>
+          <div class="stat"><div class="staticon blue">▤</div><div><small>Periode</small><strong id="rpPeriode" style="font-size:17px">—</strong><small id="rpEvents">—</small></div></div>
+        </div>
+        <div class="panel">
+          <div class="panelhead"><h2>Ekspor Laporan</h2></div>
+          <div class="toolgrid">
+            <button class="tool" data-export="PDF"><b>📄</b>Export PDF</button>
+            <button class="tool" data-export="Excel"><b>▦</b>Export Excel</button>
+            <button class="tool" data-export="Cetak"><b>🖨</b>Cetak laporan</button>
+          </div>
+          <p class="sub" style="margin-top:10px">Export PDF membuka tampilan cetak — pilih “Simpan sebagai PDF” pada dialog cetak browser.</p>
+        </div>
+      </section>
+
+      <!-- ===== Pengaturan ===== -->
+      <section class="sectionpage" id="page-pengaturan">
+        <div class="welcome"><div><h1>Pengaturan</h1><p>Preferensi aplikasi, keamanan akun, dan hak akses.</p></div></div>
+        <div class="split">
+          <div class="panel">
+            <h2>Hak Akses</h2>
+            <div class="scheduleitem"><div class="scheduleicon red">♙</div><div><strong>Admin</strong><small>Master data, jadwal, laporan, akun, konfigurasi</small></div><span class="badge ok" style="margin-left:auto">Penuh</span></div>
+            <div class="scheduleitem"><div class="scheduleicon blue">▣</div><div><strong>Petugas Absen</strong><small>Scan QR, absen manual, monitoring</small></div><span class="badge late" style="margin-left:auto">Terbatas</span></div>
+          </div>
+          <div class="panel admin-only">
+            <h2>Preferensi Aplikasi</h2>
+            <div class="field"><label for="setAppName">Nama aplikasi</label><input id="setAppName" maxlength="40"></div>
+            <div class="field"><label for="setTz">Zona waktu</label>
+              <select id="setTz"><option value="Asia/Jakarta">WIB (Asia/Jakarta)</option><option value="Asia/Makassar">WITA (Asia/Makassar)</option><option value="Asia/Jayapura">WIT (Asia/Jayapura)</option></select>
+            </div>
+            <button class="btn btn-primary" id="saveSettings">Simpan Pengaturan</button>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:16px;max-width:520px">
+          <h2>Ganti Password</h2>
+          <div class="field"><label for="pwOld">Password lama</label><input id="pwOld" type="password" autocomplete="current-password"></div>
+          <div class="field"><label for="pwNew">Password baru (minimal 8 karakter)</label><input id="pwNew" type="password" autocomplete="new-password"></div>
+          <button class="btn btn-primary" id="savePw">Ubah Password</button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<nav class="mobile-tabs is-hidden" id="mobileTabs">
+  <button class="active" data-page="dashboard"><span>▦</span>Beranda</button>
+  <button data-page="absensi"><span>▣</span>Absensi</button>
+  <button class="admin-only" data-page="pegawai"><span>♙</span>Peserta</button>
+  <button data-page="jadwal"><span>◷</span>Jadwal</button>
+  <button class="admin-only" data-page="laporan"><span>▥</span>Laporan</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="modalback" id="modalback">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2 id="modalTitle">—</h2>
+    <p id="modalDesc"></p>
+    <div id="modalFields"></div>
+    <div class="modalactions">
+      <button class="btn btn-soft" id="modalCancel">Batal</button>
+      <button class="btn btn-primary" id="modalSave">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/qr-encoder.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
