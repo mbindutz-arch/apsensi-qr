@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QR Absensi — AOY PRODUCTION HOUSE</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand"><div class="brandmark">▦</div><span>QR Absensi</span></div>
+
+    <div class="role-switch">
+      <label>MODE AKSES</label>
+      <select id="role">
+        <option value="admin">Admin</option>
+        <option value="petugas">Petugas Absen</option>
+      </select>
+    </div>
+
+    <nav class="nav" id="sidenav">
+      <button class="active" data-page="dashboard"><span class="ico">▦</span>Dashboard</button>
+      <button data-page="pegawai"><span class="ico">♙</span>Master Data &amp; QR</button>
+      <button data-page="absensi"><span class="ico">▣</span>Monitoring Absensi</button>
+      <button data-page="laporan"><span class="ico">▥</span>Export Hasil Absen</button>
+      <button data-page="jadwal"><span class="ico">◷</span>Jadwal Event</button>
+      <button data-page="perangkat"><span class="ico">▣</span>Perangkat</button>
+      <button data-page="pengaturan"><span class="ico">⚙</span>Pengaturan</button>
+    </nav>
+
+    <div class="side-bottom">QR Absensi · AOY PRODUCTION HOUSE<br>© 2026</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+       <div class="top-left">
+        <button class="iconbtn" id="menuBtn">☰</button>
+        <div><strong id="pageTitle">Dashboard</strong><div class="sub">Sistem manajemen kehadiran</div></div>
+      </div>
+      <div class="topright">
+        <span class="clock">◷ <b id="clock">08:15 WIB</b></span>
+        <button class="iconbtn" id="notifBtn">♧</button>
+        <div class="profile">
+          <div class="avatar" id="profileAvatar">A</div>
+          <div><strong id="profileName">Admin</strong><small id="profileRole">Administrator</small></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ===== Dashboard ===== -->
+      <section class="sectionpage active" id="page-dashboard">
+        <div class="welcome">
+          <div><h1 id="greeting">Selamat datang, Admin 👋</h1><p>Ringkasan kehadiran peserta hari ini.</p></div>
+          <div class="datepill">▣ &nbsp; Senin, 12 Oktober 2026</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="staticon blue">♙</div><div><small>Total Peserta</small><strong>48</strong><small>Data terdaftar</small></div></div>
+          <div class="stat"><div class="staticon green">✓</div><div><small>Hadir Hari Ini</small><strong id="presentCount">35</strong><small>72,9% dari total</small></div></div>
+          <div class="stat"><div class="staticon orange">◷</div><div><small>Belum Absen</small><strong>6</strong><small>12,5% dari total</small></div></div>
+          <div class="stat"><div class="staticon red">×</div><div><small>Tidak Hadir</small><strong>7</strong><small>14,6% dari total</small></div></div>
+        </div>
+
+        <div class="layout">
+          <div class="leftcol">
+            <div class="split">
+              <div class="panel">
+                <div class="panelhead"><h2>Rekap Kehadiran</h2><span class="sub">Hari ini</span></div>
+                <div class="chartrow">
+                  <div class="donut"></div>
+                  <div class="legend">
+                    <div class="legendrow"><span><i class="dot" style="background:#19b77a"></i>Hadir</span><b>35</b></div>
+                    <div class="legendrow"><span><i class="dot" style="background:#f3a41a"></i>Belum absen</span><b>6</b></div>
+                    <div class="legendrow"><span><i class="dot" style="background:#f0444c"></i>Tidak hadir</span><b>7</b></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panelhead"><h2>Jam Kehadiran Hari Ini</h2><span class="badge ok">● Aktif</span></div>
+                <div class="scheduleitem"><div class="scheduleicon green">◷</div><div><strong>Jam mulai</strong><small>08:00 – 08:30</small></div><span class="badge ok" style="margin-left:auto">Berjalan</span></div>
+                <div class="scheduleitem"><div class="scheduleicon red">◷</div><div><strong>Jam selesai</strong><small>17:00 – 17:30</small></div><span class="badge" style="background:#eef2f7;color:#61708a;margin-left:auto">Nanti</span></div>
+                <button class="btn btn-soft full" style="margin-top:12px" data-go="jadwal">Kelola jadwal</button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panelhead">
+                <div><h2>Daftar Kehadiran Hari Ini</h2><div class="sub">Status kehadiran peserta</div></div>
+                <button class="btn btn-soft" data-go="absensi">Lihat semua →</button>
+              </div>
+              <div class="tablewrap">
+                <table>
+                  <thead><tr><th>Nama Peserta</th><th>Jabatan</th><th>Datang</th><th>Status</th></tr></thead>
+                  <tbody id="attendanceRows">
+                    <tr><td><div class="person"><span class="miniavatar">AP</span>Andi Pratama</div></td><td>Anggota</td><td>08:02</td><td><span class="badge ok">Hadir</span></td></tr>
+                    <tr><td><div class="person"><span class="miniavatar">SR</span>Siti Rahmawati</div></td><td>ketua</td><td>08:15</td><td><span class="badge ok">Hadir</span></td></tr>
+                    <tr><td><div class="person"><span class="miniavatar">BS</span>Budi Santoso</div></td><td>Anggota</td><td>08:32</td><td><span class="badge ok">Hadir</span></td></tr>
+                    <tr><td><div class="person"><span class="miniavatar">ML</span>Maya Lestari</div></td><td>Wakil</td><td>—</td><td><span class="badge absent">Tidak hadir</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="split">
+              <div class="panel">
+                <div class="panelhead"><h2>Jadwal Event</h2><button class="btn btn-soft" data-go="jadwal">Kelola</button></div>
+                <div class="scheduleitem"><div class="scheduleicon orange">☀</div><div><strong>Pagi</strong><small>08:00–12:00 · event</small></div></div>
+                <div class="scheduleitem"><div class="scheduleicon blue">◐</div><div><strong>Siang</strong><small>13:00–17:00 · </small></div></div>
+              </div>
+              <div class="panel">
+                <div class="panelhead"><h2>Laporan Cepat</h2></div>
+                <div class="toolgrid">
+                  <button class="tool" data-export="PDF"><b>▤</b>PDF</button>
+                  <button class="tool" data-export="Excel"><b>▦</b>Excel</button>
+                  <button class="tool" data-go="laporan"><b>☷</b>Filter</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+            <div class="panel">
+              <div class="panelhead"><h2>Monitoring Log</h2><button class="btn btn-soft" data-go="absensi">Lihat semua</button></div>
+              <div class="activity"><div class="scheduleicon green">✓</div><div><strong>Andi Pratama</strong><small>Melakukan absen kedatangan</small></div><small style="margin-left:auto">08:02</small></div>
+              <div class="activity"><div class="scheduleicon green">✓</div><div><strong>Siti Rahmawati</strong><small>Melakukan absen kedatangan</small></div><small style="margin-left:auto">08:15</small></div>
+              <div class="activity"><div class="scheduleicon orange">◷</div><div><strong>Budi Santoso</strong><small>Absensi tercatat</small></div><small style="margin-left:auto">08:32</small></div>
+            </div>
+          </div>
+      </section>
+
+      <!-- ===== Monitoring Absensi / Scan QR ===== -->
+      <section class="sectionpage" id="page-absensi">
+        <div class="welcome">
+          <div><h1>Absensi</h1><p>Pantau catatan kehadiran dengan hasil Hadir atau Tidak Hadir.</p></div>
+          <button class="btn btn-primary" id="scanBtn">▦ Mulai Scan QR</button>
+        </div>
+        <div class="panel">
+          <div class="panelhead">
+            <h2>Catatan Kehadiran</h2>
+            <div class="toolbar">
+              <input id="attendanceSearch" placeholder="Cari nama pegawai…">
+              <select id="statusFilter">
+                <option value="all">Semua status</option>
+                <option>Hadir</option>
+                <option>Tidak hadir</option>
+              </select>
+            </div>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Nama Peserta</th><th>Jabatan</th><th>Tanggal</th><th>Jam kedatangan</th><th>Status</th></tr></thead>
+              <tbody id="fullAttendance">
+                <tr><td>Andi Pratama</td><td>Anggota</td><td>12 Okt 2026</td><td>08:02</td><td>—</td><td><span class="badge ok">Hadir</span></td></tr>
+                <tr><td>Siti Rahmawati</td><td>Ketua</td><td>12 Okt 2026</td><td>08:15</td><td>—</td><td><span class="badge ok">Hadir</span></td></tr>
+                <tr><td>Budi Santoso</td><td>Anggota</td><td>12 Okt 2026</td><td>08:32</td><td>—</td><td><span class="badge ok">Hadir</span></td></tr>
+                <tr><td>Maya Lestari</td><td>Wakil</td><td>12 Okt 2026</td><td>—</td><td>—</td><td><span class="badge absent">Tidak hadir</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Master Data Pegawai ===== -->
+      <section class="sectionpage" id="page-pegawai">
+        <div class="welcome">
+          <div><h1>Data Peserta</h1><p>Kelola identitas peserta dan QR masing-masing.</p></div>
+          <button class="btn btn-primary" id="addEmployee">＋ Tambah Peserta</button>
+        </div>
+        <div class="panel">
+          <div class="panelhead"><h2>Master Data Peserta</h2><input id="employeeSearch" placeholder="Cari nama atau jabatan…"></div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Nama</th><th>Jabatan</th><th>ID Peserta</th><th>Status</th><th>Aksi</th></tr></thead>
+              <tbody id="employeeRows">
+                <tr><td>Andi Pratama</td><td>Anggota</td><td>EMP-001</td><td><span class="badge ok">Aktif</span></td><td><button class="btn btn-soft editBtn">Edit</button> <button class="btn btn-soft qrBtn">Buat QR</button></td></tr>
+                <tr><td>Siti Rahmawati</td><td>Ketua</td><td>EMP-002</td><td><span class="badge ok">Aktif</span></td><td><button class="btn btn-soft editBtn">Edit</button> <button class="btn btn-soft qrBtn">Buat QR</button></td></tr>
+                <tr><td>Budi Santoso</td><td>Anggota</td><td>EMP-003</td><td><span class="badge ok">Aktif</span></td><td><button class="btn btn-soft editBtn">Edit</button> <button class="btn btn-soft qrBtn">Buat QR</button></td></tr>
+                <tr><td>Maya Lestari</td><td>Wakil</td><td>EMP-004</td><td><span class="badge ok">Aktif</span></td><td><button class="btn btn-soft editBtn">Edit</button> <button class="btn btn-soft qrBtn">Buat QR</button></td></tr>
+                <tr><td>Rizki Maulana</td><td>Anggota</td><td>EMP-005</td><td><span class="badge ok">Aktif</span></td><td><button class="btn btn-soft editBtn">Edit</button> <button class="btn btn-soft qrBtn">Buat QR</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Jadwal event ===== -->
+      <section class="sectionpage" id="page-jadwal">
+        <div class="welcome">
+          <div><h1>Jadwal Event</h1><p>Atur tanggal, jam mulai dan hari.</p></div>
+          <button class="btn btn-primary" id="editSchedule">✎ Ubah Jadwal</button>
+        </div>
+        <div class="split">
+          <div class="panel">
+            <h2>Pengaturan Jam mulai</h2>
+            <div class="field">
+              <label for="eventEndTime">Jam acara selesai (absensi otomatis ditutup)</label>
+              <input id="eventEndTime" type="time" value="17:00">
+              <small class="sub">Saat waktu ini tercapai, scan QR dinonaktifkan dan peserta yang belum hadir ditandai Tidak Hadir.</small>
+            </div>
+            <button class="btn btn-primary" id="saveEventEnd">Simpan Jam Selesai</button>
+            <div id="eventState" class="sub" style="margin-top:8px">Status sesi: Aktif</div>
+            <div class="scheduleitem"><div class="scheduleicon orange">☀</div><div><strong>Jam Mulai</strong></div><b style="margin-left:auto">08:00</b></div>
+            <div class="scheduleitem"><div class="scheduleicon red">◷</div><div><strong>Tanggal Event</strong></div><b style="margin-left:auto">17:00</b></div>
+            <div class="scheduleitem"><div class="scheduleicon blue">▣</div><div><strong>Hari Event</strong><small>Senin – Minggu</small></div></div>
+          </div>
+          <div class="panel">
+            <h2>Daftar Event</h2>
+            <div class="scheduleitem"><div class="scheduleicon blue">▣</div><div><strong>Jadwal Event</strong><small>08:00–17:00 · Senin–Jumat</small></div><span class="badge ok" style="margin-left:auto">Aktif</span></div>
+            <div class="scheduleitem"><div class="scheduleicon orange">☀</div><div><strong>Jam Mulai</strong><small>06:00–14:00</small></div><button class="btn btn-soft" style="margin-left:auto">•••</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Perangkat ===== -->
+          <section class="sectionpage" id="page-perangkat">
+        <div class="welcome">
+          <div><h1>Perangkat</h1><p>Kelola perangkat petugas yang terdaftar.</p></div>
+        </div>
+        <div class="panel">
+          <h2>Perangkat Petugas</h2>
+          <div class="scheduleitem">
+            <div class="scheduleicon blue">▣</div>
+            <div><strong>Perangkat Petugas 01</strong><small>Terdaftar · Terakhir aktif hari ini</small></div>
+            <span class="badge ok" style="margin-left:auto">Online</span>
+          </div>
+          <button class="btn btn-soft full" id="deviceBtn">Kelola perangkat</button>
+        </div>
+      </section>
+
+      <!-- ===== Laporan ===== -->
+      <section class="sectionpage" id="page-laporan">
+        <div class="welcome"><div><h1>Laporan Kehadiran</h1><p>Ekspor rekap dengan status Hadir dan Tidak Hadir.</p></div></div>
+        <div class="panel">
+          <div class="panelhead"><h2>Filter Laporan</h2></div>
+          <div class="toolbar">
+            <label>Dari <input type="date" value="2026-10-01"></label>
+            <label>Sampai <input type="date" value="2026-10-12"></label>
+            <select><option>Semua peserta</option><option>Anggota</option><option>Ketua</option></select>
+            <button class="btn btn-primary" id="applyReport">Terapkan Filter</button>
+          </div>
+        </div>
+        <div class="stats" style="margin-top:18px">
+          <div class="stat"><div class="staticon green">✓</div><div><small>Total Hadir</small><strong>245</strong></div></div>
+          <div class="stat"><div class="staticon red">×</div><div><small>Tidak Hadir</small><strong>21</strong></div></div>
+          <div class="stat"><div class="staticon blue">▤</div><div><small>Periode</small><strong style="font-size:17px">1–12 Okt</strong></div></div>
+        </div>
+        <div class="panel">
+          <div class="panelhead"><h2>Ekspor Laporan</h2></div>
+          <div class="toolgrid">
+            <button class="tool" data-export="PDF"><b>📄</b>Export PDF</button>
+            <button class="tool" data-export="Excel"><b>▦</b>Export Excel</button>
+            <button class="tool" data-export="Cetak"><b>🖨</b>Cetak laporan</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Pengaturan ===== -->
+      <section class="sectionpage" id="page-pengaturan">
+        <div class="welcome"><div><h1>Pengaturan</h1><p>Preferensi aplikasi dan hak akses.</p></div></div>
+        <div class="split">
+          <div class="panel">
+            <h2>Hak Akses</h2>
+            <div class="scheduleitem"><div class="scheduleicon red">♙</div><div><strong>Admin</strong><small>Master data, jadwal, laporan, konfigurasi</small></div><span class="badge ok" style="margin-left:auto">Penuh</span></div>
+            <div class="scheduleitem"><div class="scheduleicon blue">▣</div><div><strong>Petugas Absen</strong><small>Scan QR, verifikasi, riwayat absensi</small></div><span class="badge late" style="margin-left:auto">Terbatas</span></div>
+          </div>
+          <div class="panel">
+            <h2>Preferensi Aplikasi</h2>
+            <div class="field"><label>Nama aplikasi</label><input value="QR Absensi"></div>
+            <div class="field"><label>Zona waktu</label><select><option>WIB (Asia/Jakarta)</option><option>WITA</option><option>WIT</option></select></div>
+            <button class="btn btn-primary" id="saveSettings">Simpan Pengaturan</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<nav class="mobile-tabs" id="mobileTabs">
+  <button class="active" data-page="dashboard"><span>▦</span>Beranda</button>
+  <button data-page="absensi"><span>▣</span>Absensi</button>
+  <button data-page="pegawai"><span>♙</span>Peserta</button>
+  <button data-page="jadwal"><span>▦</span>Jadwal</button>
+  <button data-page="laporan"><span>▥</span>Laporan</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="modalback" id="modalback">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2 id="modalTitle">Tambah Peserta</h2>
+    <p id="modalDesc">Masukkan data yang diperlukan.</p>
+    <div id="modalFields"></div>
+    <div class="modalactions">
+      <button class="btn btn-soft" id="modalCancel">Batal</button>
+      <button class="btn btn-primary" id="modalSave">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
