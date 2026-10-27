@@ -29,6 +29,18 @@ Buka `http://localhost:3000` dan login:
 Event contoh untuk hari ini dibuat otomatis dengan jam **00:00–23:59** supaya langsung bisa dites.
 Atur jam sebenarnya di menu **Jadwal Event**.
 
+## Foto peserta & logo aplikasi
+
+- **Logo aplikasi**: menu *Pengaturan* → *Logo Aplikasi* (admin). Logo tampil di sidebar, layar login, dan
+  sebagai watermark transparan di kartu QR & laporan yang dicetak.
+- **Foto peserta**: diisi lewat form *Tambah/Edit Peserta* di menu *Master Data & QR*. Foto langsung tampil
+  sebagai avatar di daftar peserta, daftar kehadiran, dan — yang terpenting — di **panel petugas begitu QR
+  peserta discan**, bersanding dengan nama, jabatan, ID, dan jam absen.
+- Gambar diperkecil otomatis di browser (maks. ±480px, JPEG) sebelum dikirim, jadi tidak perlu library
+  image-processing di server. Disimpan sebagai file biasa di `data/uploads/` (bukan di database) dan dilayani
+  tanpa header login (supaya bisa dipakai langsung sebagai `<img src>`) — jangan sebarkan link foto ke pihak
+  yang tidak berkepentingan.
+
 ## Alur penggunaan
 
 1. **Admin** menambah peserta (satu per satu, atau *Import CSV* untuk 300 sekaligus). Setiap peserta langsung
@@ -71,6 +83,7 @@ public/vendor/       qr-encoder.js = generator QR offline (MIT)
 scripts/seed.js      data dummy       |  scripts/backup.js  backup database
 test/api.test.js     tes otomatis backend
 data/                database & secret (dibuat otomatis, jangan di-commit)
+data/uploads/        foto peserta & logo aplikasi (dibuat otomatis, jangan di-commit)
 ```
 
 ## API ringkas
@@ -95,7 +108,9 @@ Error selalu berbentuk `{"error":{"code":"...","message":"..."}}`.
 | `GET /api/reports/summary?from=&to=&jabatan=` | admin | ringkasan laporan (`&rows=1` untuk detail) |
 | `GET /api/reports/attendance.xlsx?from=&to=` | admin | unduh Excel |
 | `GET/POST/DELETE /api/users` | admin | akun petugas |
-| `GET/PUT /api/settings` | login / admin | nama aplikasi, zona waktu |
+| `GET/PUT /api/settings` | login / admin | nama aplikasi, zona waktu, `logo_url` |
+| `POST/DELETE /api/settings/logo` | admin | unggah/hapus logo aplikasi (`{"image":"data:image/png;base64,..."}`) |
+| `POST/DELETE /api/participants/:id/photo` | admin | unggah/hapus foto peserta (format sama seperti logo) |
 
 Kode hasil `/api/scan`: `OK`, `ALREADY` (200); error: `QR_INVALID` (404), `EVENT_NOT_STARTED` / `EVENT_CLOSED` (409),
 `PARTICIPANT_INACTIVE` (403), `RATE_LIMIT` (429).

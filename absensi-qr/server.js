@@ -10,7 +10,7 @@ const os = require('node:os');
 
 const { openDb, tx, getSetting, setSetting, bootstrap, nextParticipantNumber, formatCode } = require('./src/db');
 const auth = require('./src/auth');
-const { httpError, HttpError, nowParts, eventState, isValidDate, isValidTime, cleanStr, escapeLike, makeLimiter } = require('./src/util');
+const { httpError, HttpError, nowParts, eventState, isValidDate, isValidTime, cleanStr, escapeLike, makeLimiter, decodeImageDataUrl } = require('./src/util');
 const { buildXlsx } = require('./src/xlsx');
 
 const TIMEZONES = ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'];
@@ -20,7 +20,9 @@ const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
   '.csv': 'text/csv; charset=utf-8', '.woff2': 'font/woff2', '.map': 'application/json',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
 };
+const MAX_IMAGE_BYTES = 1.5 * 1024 * 1024; // batas ukuran foto/logo setelah di-decode (sudah di-resize di browser)
 
 const clampInt = (v, min, max, dflt) => {
   const n = Number.parseInt(v, 10);
@@ -40,6 +42,36 @@ function createApp(opts = {}) {
   const db = openDb(dbFile);
   bootstrap(db, log);
   const secret = opts.secret || auth.loadSecret(dataDir);
+
+  // ---- foto peserta & logo aplikasi: disimpan sebagai file di data/uploads, bukan di DB ----
+  const uploadsDir = path.join(dataDir, 'uploads');
+  const photosDir = path.join(uploadsDir, 'participants');
+  const logoDir = path.join(uploadsDir, 'logo');
+  fs.mkdirSync(photosDir, { recursive: true });
+  fs.mkdirSync(logoDir, { recursive: true });
+
+  // Hapus file lama dengan basename yang sama (ekstensi apa pun) sebelum menyimpan yang baru.
+  function removeByBasename(dir, basename) {
+    let names;
+    try { names = fs.readdirSync(dir); } catch { return; }
+    for (const n of names) {
+      if (n === basename || n.startsWith(basename + '.')) {
+        try { fs.unlinkSync(path.join(dir, n)); } catch { /* abaikan */ }
+      }
+    }
+  }
+
+  // Simpan data-URL gambar (base64) ke disk; mengembalikan nama file (mis. "p-12.jpg") atau null bila body tidak berisi gambar baru.
+  function saveImage(dir, basename, dataUrl) {
+    if (dataUrl === undefined || dataUrl === null) return undefined; // tidak diubah
+    removeByBasename(dir, basename);
+    if (dataUrl === '') return null; // diminta dihapus
+    const img = decodeImageDataUrl(dataUrl, MAX_IMAGE_BYTES);
+    if (!img) throw httpError(400, 'VALIDATION', 'Gambar tidak valid. Gunakan JPG/PNG/WEBP, maksimal sekitar 1.5MB.');
+    const filename = `${basename}.${img.ext}`;
+    fs.writeFileSync(path.join(dir, filename), img.buffer, { mode: 0o644 });
+    return filename;
+  }
 
   const loginLimiter = makeLimiter(opts.loginMax ?? Number(process.env.LOGIN_MAX || 10), 15 * 60 * 1000);
   const scanLimiter = makeLimiter(opts.scanMax ?? Number(process.env.SCAN_MAX || 300), 60 * 1000);
@@ -96,12 +128,13 @@ function createApp(opts = {}) {
       ? 'a.scanned_at IS NULL, a.scanned_at DESC, p.name COLLATE NOCASE'
       : 'p.name COLLATE NOCASE';
     const rows = db.prepare(
-      `SELECT p.id AS participant_id, p.code, p.name, p.jabatan, a.id AS attendance_id, a.scanned_at, a.method ${base} ORDER BY ${order}, p.id LIMIT ? OFFSET ?`,
+      `SELECT p.id AS participant_id, p.code, p.name, p.jabatan, p.photo, a.id AS attendance_id, a.scanned_at, a.method ${base} ORDER BY ${order}, p.id LIMIT ? OFFSET ?`,
     ).all(...args, limit ?? 500, offset ?? 0);
     return {
       total,
       data: rows.map((r) => ({
         participant_id: r.participant_id, attendance_id: r.attendance_id, code: r.code, name: r.name, jabatan: r.jabatan,
+        photo_url: photoUrl(r.photo),
         status: r.attendance_id ? 'Hadir' : (state === 'closed' ? 'Tidak hadir' : 'Belum absen'),
         scanned_at: r.scanned_at, time: r.scanned_at ? nowParts(zone, new Date(r.scanned_at)).time : null,
         method: r.method,
@@ -129,7 +162,7 @@ function createApp(opts = {}) {
     return {
       code,
       message: code === 'OK' ? `${participant.name} berhasil absen` : `${participant.name} sudah absen pukul ${time.slice(0, 5)}`,
-      participant: { code: participant.code, name: participant.name, jabatan: participant.jabatan },
+      participant: { code: participant.code, name: participant.name, jabatan: participant.jabatan, photo_url: photoUrl(participant.photo) },
       scanned_at: at, time, method,
     };
   }
@@ -174,8 +207,14 @@ function createApp(opts = {}) {
     };
   }
 
+  const photoUrl = (filename) => (filename ? `/uploads/participants/${filename}` : null);
+  const logoUrl = () => { const f = getSetting(db, 'app_logo', ''); return f ? `/uploads/logo/${f}` : null; };
+
   const publicParticipant = (p, withToken) => {
-    const out = { id: p.id, code: p.code, name: p.name, jabatan: p.jabatan, status: p.status, created_at: p.created_at };
+    const out = {
+      id: p.id, code: p.code, name: p.name, jabatan: p.jabatan, status: p.status, created_at: p.created_at,
+      photo_url: photoUrl(p.photo),
+    };
     if (withToken) out.qr_token = p.qr_token;
     return out;
   };
@@ -211,7 +250,7 @@ function createApp(opts = {}) {
 
   // ---- publik
   route('GET', '/api/health', 'public', () => ({ ok: true, time: new Date().toISOString() }));
-  route('GET', '/api/public/info', 'public', () => ({ app_name: getSetting(db, 'app_name', 'QR Absensi') }));
+  route('GET', '/api/public/info', 'public', () => ({ app_name: getSetting(db, 'app_name', 'QR Absensi'), logo_url: logoUrl() }));
 
   // ---- auth
   route('POST', '/api/auth/login', 'public', ({ body, ip }) => {
@@ -235,7 +274,7 @@ function createApp(opts = {}) {
   });
 
   // ---- pengaturan
-  route('GET', '/api/settings', 'auth', () => ({ app_name: getSetting(db, 'app_name', 'QR Absensi'), timezone: tz() }));
+  route('GET', '/api/settings', 'auth', () => ({ app_name: getSetting(db, 'app_name', 'QR Absensi'), timezone: tz(), logo_url: logoUrl() }));
   route('PUT', '/api/settings', 'admin', ({ body }) => {
     if (body.app_name !== undefined) {
       const n = cleanStr(body.app_name, 40);
@@ -246,7 +285,21 @@ function createApp(opts = {}) {
       if (!TIMEZONES.includes(body.timezone)) throw httpError(400, 'VALIDATION', 'Zona waktu tidak didukung');
       setSetting(db, 'timezone', body.timezone);
     }
-    return { app_name: getSetting(db, 'app_name', 'QR Absensi'), timezone: tz() };
+    return { app_name: getSetting(db, 'app_name', 'QR Absensi'), timezone: tz(), logo_url: logoUrl() };
+  });
+
+  // Logo aplikasi: dipakai sebagai brand di sidebar/login dan watermark di kartu QR & laporan cetak.
+  route('POST', '/api/settings/logo', 'admin', ({ body }) => {
+    const image = typeof body.image === 'string' ? body.image : '';
+    if (!image) throw httpError(400, 'VALIDATION', 'Gambar logo wajib dikirim');
+    const filename = saveImage(logoDir, 'app-logo', image);
+    setSetting(db, 'app_logo', filename || '');
+    return { logo_url: logoUrl() };
+  }, 3 * 1024 * 1024);
+  route('DELETE', '/api/settings/logo', 'admin', () => {
+    removeByBasename(logoDir, 'app-logo');
+    setSetting(db, 'app_logo', '');
+    return { logo_url: null };
   });
 
   // ---- akun petugas
@@ -356,6 +409,7 @@ function createApp(opts = {}) {
       return { deleted: false, deactivated: true };
     }
     db.prepare('DELETE FROM participants WHERE id = ?').run(id);
+    removeByBasename(photosDir, `p-${id}`);
     return { deleted: true, deactivated: false };
   });
 
@@ -363,6 +417,24 @@ function createApp(opts = {}) {
     const id = Number(params.id);
     if (!db.prepare('SELECT 1 FROM participants WHERE id = ?').get(id)) throw httpError(404, 'NOT_FOUND', 'Peserta tidak ditemukan');
     db.prepare('UPDATE participants SET qr_token = ? WHERE id = ?').run(auth.newQrToken(), id);
+    return publicParticipant(db.prepare('SELECT * FROM participants WHERE id = ?').get(id), true);
+  });
+
+  // Foto peserta: ditampilkan di panel petugas begitu QR-nya discan.
+  route('POST', '/api/participants/:id/photo', 'admin', ({ params, body }) => {
+    const id = Number(params.id);
+    if (!db.prepare('SELECT 1 FROM participants WHERE id = ?').get(id)) throw httpError(404, 'NOT_FOUND', 'Peserta tidak ditemukan');
+    const image = typeof body.image === 'string' ? body.image : '';
+    if (!image) throw httpError(400, 'VALIDATION', 'Gambar foto wajib dikirim');
+    const filename = saveImage(photosDir, `p-${id}`, image);
+    db.prepare('UPDATE participants SET photo = ? WHERE id = ?').run(filename || null, id);
+    return publicParticipant(db.prepare('SELECT * FROM participants WHERE id = ?').get(id), true);
+  }, 3 * 1024 * 1024);
+  route('DELETE', '/api/participants/:id/photo', 'admin', ({ params }) => {
+    const id = Number(params.id);
+    if (!db.prepare('SELECT 1 FROM participants WHERE id = ?').get(id)) throw httpError(404, 'NOT_FOUND', 'Peserta tidak ditemukan');
+    removeByBasename(photosDir, `p-${id}`);
+    db.prepare('UPDATE participants SET photo = NULL WHERE id = ?').run(id);
     return publicParticipant(db.prepare('SELECT * FROM participants WHERE id = ?').get(id), true);
   });
 
@@ -569,28 +641,41 @@ function createApp(opts = {}) {
     throw pathMatched ? httpError(405, 'METHOD_NOT_ALLOWED', 'Metode tidak diizinkan') : httpError(404, 'NOT_FOUND', 'Endpoint tidak ditemukan');
   }
 
-  function serveStatic(req, res, pathname) {
+  function serveFile(req, res, root, pathname, { cache = 'no-cache' } = {}) {
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method Not Allowed', { 'Content-Type': 'text/plain' });
     let rel;
     try { rel = decodeURIComponent(pathname); } catch { return send(res, 400, 'Bad Request', { 'Content-Type': 'text/plain' }); }
     if (rel.endsWith('/')) rel += 'index.html';
-    const file = path.normalize(path.join(publicDir, rel));
-    if (file !== publicDir && !file.startsWith(publicDir + path.sep)) return send(res, 403, 'Forbidden', { 'Content-Type': 'text/plain' });
+    const file = path.normalize(path.join(root, rel));
+    if (file !== root && !file.startsWith(root + path.sep)) return send(res, 403, 'Forbidden', { 'Content-Type': 'text/plain' });
     fs.stat(file, (err, st) => {
       if (err || !st.isFile()) return send(res, 404, 'Not Found', { 'Content-Type': 'text/plain; charset=utf-8' });
       fs.readFile(file, (e2, data) => {
         if (e2) return send(res, 500, 'Server Error', { 'Content-Type': 'text/plain' });
         const ext = path.extname(file).toLowerCase();
-        const cache = rel.startsWith('/vendor/') ? 'public, max-age=86400' : 'no-cache';
         send(res, 200, req.method === 'HEAD' ? '' : data, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': cache });
       });
     });
+  }
+
+  function serveStatic(req, res, pathname) {
+    const cache = pathname.startsWith('/vendor/') ? 'public, max-age=86400' : 'no-cache';
+    serveFile(req, res, publicDir, pathname, { cache });
+  }
+
+  // Foto peserta & logo: file statis di luar /public (di data/uploads), tanpa perlu Authorization
+  // header (supaya bisa dipakai langsung sebagai <img src>). Nama file memakai token acak/ID peserta,
+  // jadi tidak mudah ditebak, tapi tetap dianggap semi-publik selama tautannya tidak disebar.
+  function serveUploads(req, res, pathname) {
+    const rel = pathname.slice('/uploads'.length) || '/';
+    serveFile(req, res, uploadsDir, rel, { cache: 'public, max-age=300' });
   }
 
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
       if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
+      if (url.pathname === '/uploads' || url.pathname.startsWith('/uploads/')) return serveUploads(req, res, url.pathname);
       return serveStatic(req, res, url.pathname);
     } catch (err) {
       return sendError(res, err);

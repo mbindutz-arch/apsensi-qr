@@ -11,7 +11,7 @@
 <!-- ===== Login ===== -->
 <div class="login" id="loginScreen">
   <form class="logincard" id="loginForm" autocomplete="on">
-    <div class="brand logobrand"><div class="brandmark">▦</div><span id="loginAppName">QR Absensi</span></div>
+    <div class="brand logobrand"><div class="brandmark" id="loginBrandMark">▦</div><span id="loginAppName">QR Absensi</span></div>
     <h2>Masuk</h2>
     <p class="sub">Gunakan akun admin atau petugas absen.</p>
     <div class="field"><label for="loginUser">Username</label><input id="loginUser" name="username" autocomplete="username" required></div>
@@ -24,7 +24,7 @@
 <div class="app is-hidden" id="appRoot">
 
   <aside class="sidebar">
-    <div class="brand"><div class="brandmark">▦</div><span id="brandName">QR Absensi</span></div>
+    <div class="brand"><div class="brandmark" id="sideBrandMark">▦</div><span id="brandName">QR Absensi</span></div>
 
     <nav class="nav" id="sidenav">
       <button class="active" data-page="dashboard"><span class="ico">▦</span>Dashboard</button>
@@ -264,6 +264,17 @@
               <select id="setTz"><option value="Asia/Jakarta">WIB (Asia/Jakarta)</option><option value="Asia/Makassar">WITA (Asia/Makassar)</option><option value="Asia/Jayapura">WIT (Asia/Jayapura)</option></select>
             </div>
             <button class="btn btn-primary" id="saveSettings">Simpan Pengaturan</button>
+          </div>
+        </div>
+        <div class="panel admin-only" style="margin-top:16px;max-width:520px">
+          <h2>Logo Aplikasi</h2>
+          <p class="sub">Tampil di sidebar, layar login, dan sebagai watermark pada kartu QR &amp; laporan cetak. Format JPG/PNG/WEBP, otomatis diperkecil di browser.</p>
+          <div class="logorow">
+            <div class="logopreviewbox" id="setLogoPreviewBox"><span class="sub">Belum ada logo</span></div>
+            <div>
+              <div class="field" style="margin-bottom:8px"><input id="setLogoInput" type="file" accept="image/*"></div>
+              <button class="btn btn-soft" id="setLogoRemove" type="button">Hapus Logo</button>
+            </div>
           </div>
         </div>
         <div class="panel" style="margin-top:16px;max-width:520px">

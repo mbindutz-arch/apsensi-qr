@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS participants (
   jabatan    TEXT NOT NULL DEFAULT 'Anggota',
   status     TEXT NOT NULL DEFAULT 'Aktif' CHECK (status IN ('Aktif','Nonaktif')),
   qr_token   TEXT NOT NULL UNIQUE,
+  photo      TEXT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_participants_name ON participants(name);
@@ -48,11 +49,18 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
+// Migrasi ringan: tambah kolom baru pada database lama tanpa menghapus data.
+function migrate(db) {
+  const cols = db.prepare('PRAGMA table_info(participants)').all().map((c) => c.name);
+  if (!cols.includes('photo')) db.exec('ALTER TABLE participants ADD COLUMN photo TEXT');
+}
+
 function openDb(file) {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
   db.exec(SCHEMA);
+  migrate(db);
   return db;
 }
 

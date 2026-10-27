@@ -4,5 +4,6 @@ data/*.db-wal
 data/*.db-shm
 data/jwt.secret
 data/backup/
+data/uploads/
 *.log
 .DS_Store

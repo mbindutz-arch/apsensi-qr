@@ -20,6 +20,35 @@ const fmtDateLong = (iso) => {
 };
 const hm = (t) => (t ? String(t).slice(0, 5) : '—');
 
+// Resize gambar di browser sebelum dikirim ke server (base64 data-URL), supaya foto/logo tetap kecil
+// walau backend tidak punya library image-processing. maxDim = sisi terpanjang hasil akhir (px).
+function resizeImageToDataUrl(file, maxDim = 480, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith('image/')) return reject(new Error('File harus berupa gambar'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Gagal membaca file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('File gambar tidak valid'));
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch { /* abaikan */ } },
@@ -169,6 +198,11 @@ function applyBrand() {
   $('#sideName').textContent = n;
   $('#loginAppName').textContent = n;
   document.title = n;
+  const logo = S.settings.logo_url || '';
+  for (const mark of [$('#sideBrandMark'), $('#loginBrandMark')]) {
+    if (!mark) continue;
+    mark.innerHTML = logo ? `<img src="${esc(logo)}" alt="Logo">` : '▦';
+  }
   updateClock();
 }
 
@@ -290,7 +324,7 @@ function renderDashboard() {
   }
 
   $('#recentRows').innerHTML = d.recent.length
-    ? d.recent.slice(0, 6).map((r) => `<tr><td><div class="person"><span class="miniavatar">${esc(initials(r.name))}</span>${esc(r.name)}</div></td><td>${esc(r.jabatan)}</td><td>${esc(hm(r.time))}</td><td>${statusBadge(r.status)}</td></tr>`).join('')
+    ? d.recent.slice(0, 6).map((r) => `<tr><td><div class="person"><span class="miniavatar">${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="">` : esc(initials(r.name))}</span>${esc(r.name)}</div></td><td>${esc(r.jabatan)}</td><td>${esc(hm(r.time))}</td><td>${statusBadge(r.status)}</td></tr>`).join('')
     : '<tr><td colspan="4" class="empty">Belum ada peserta yang absen.</td></tr>';
 
   $('#logList').innerHTML = d.recent.length
@@ -321,7 +355,7 @@ function renderAttendance() {
       let action = '';
       if (r.status === 'Hadir' && isAdmin) action = `<button class="btn btn-soft" data-act="cancel" data-id="${r.attendance_id}">Batalkan</button>`;
       else if (r.status !== 'Hadir' && open) action = `<button class="btn btn-soft" data-act="manual" data-code="${esc(r.code)}">Absen manual</button>`;
-      return `<tr><td><div class="person"><span class="miniavatar">${esc(initials(r.name))}</span><div>${esc(r.name)}<div class="sub">${esc(r.code)}</div></div></div></td><td>${esc(r.jabatan)}</td><td>${ev ? esc(fmtDate(ev.event_date)) : '—'}</td><td>${esc(hm(r.time))}${r.method === 'manual' ? ' <span class="sub">(manual)</span>' : ''}</td><td>${statusBadge(r.status)}</td><td>${action}</td></tr>`;
+      return `<tr><td><div class="person"><span class="miniavatar">${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="">` : esc(initials(r.name))}</span><div>${esc(r.name)}<div class="sub">${esc(r.code)}</div></div></div></td><td>${esc(r.jabatan)}</td><td>${ev ? esc(fmtDate(ev.event_date)) : '—'}</td><td>${esc(hm(r.time))}${r.method === 'manual' ? ' <span class="sub">(manual)</span>' : ''}</td><td>${statusBadge(r.status)}</td><td>${action}</td></tr>`;
     }).join('')
     : '<tr><td colspan="6" class="empty">Tidak ada data yang cocok.</td></tr>';
 }
@@ -356,7 +390,7 @@ function renderParticipants() {
   const rows = S.participants.filter((p) => !q || [p.name, p.jabatan, p.code].some((v) => v.toLowerCase().includes(q)));
   $('#employeeCount').textContent = `· ${rows.length} dari ${S.participants.length} peserta`;
   $('#employeeRows').innerHTML = rows.length
-    ? rows.map((p) => `<tr><td><div class="person"><span class="miniavatar">${esc(initials(p.name))}</span>${esc(p.name)}</div></td><td>${esc(p.jabatan)}</td><td>${esc(p.code)}</td><td><span class="badge ${p.status === 'Aktif' ? 'ok' : 'muted'}">${esc(p.status)}</span></td><td class="actions"><button class="btn btn-soft" data-act="edit" data-id="${p.id}">Edit</button> <button class="btn btn-soft" data-act="qr" data-id="${p.id}">Buat QR</button> <button class="btn btn-soft" data-act="del" data-id="${p.id}">Hapus</button></td></tr>`).join('')
+    ? rows.map((p) => `<tr><td><div class="person"><span class="miniavatar">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : esc(initials(p.name))}</span>${esc(p.name)}</div></td><td>${esc(p.jabatan)}</td><td>${esc(p.code)}</td><td><span class="badge ${p.status === 'Aktif' ? 'ok' : 'muted'}">${esc(p.status)}</span></td><td class="actions"><button class="btn btn-soft" data-act="edit" data-id="${p.id}">Edit</button> <button class="btn btn-soft" data-act="qr" data-id="${p.id}">Buat QR</button> <button class="btn btn-soft" data-act="del" data-id="${p.id}">Hapus</button></td></tr>`).join('')
     : '<tr><td colspan="5" class="empty">Belum ada peserta. Tambahkan atau import dari CSV.</td></tr>';
 }
 
@@ -384,10 +418,21 @@ function jabatanOptions(val) {
 }
 
 function openParticipantForm(p = null) {
+  let pendingPhoto = null; // data-URL hasil resize, menunggu diunggah setelah peserta disimpan
+  let removePhoto = false;
   openModal({
     title: p ? 'Edit Peserta' : 'Tambah Peserta',
     desc: p ? `ID ${p.code}` : 'QR Code dibuat otomatis begitu peserta disimpan.',
-    html: `<div class="field"><label for="fName">Nama lengkap</label><input id="fName" maxlength="120" value="${esc(p ? p.name : '')}"></div>
+    html: `<div class="field"><label>Foto peserta</label>
+             <div class="photorow">
+               <div class="photopreview" id="fPhotoPreview">${p && p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : 'Tanpa foto'}</div>
+               <div>
+                 <input id="fPhoto" type="file" accept="image/*">
+                 ${p && p.photo_url ? '<button class="btn btn-soft" id="fPhotoRemove" type="button" style="margin-top:6px">Hapus foto</button>' : ''}
+               </div>
+             </div>
+           </div>
+           <div class="field"><label for="fName">Nama lengkap</label><input id="fName" maxlength="120" value="${esc(p ? p.name : '')}"></div>
            <div class="field"><label for="fJabatan">Jabatan</label><select id="fJabatan">${jabatanOptions(p && p.jabatan)}</select></div>
            ${p
     ? `<div class="field"><label for="fStatus">Status</label><select id="fStatus"><option${p.status === 'Aktif' ? ' selected' : ''}>Aktif</option><option${p.status === 'Nonaktif' ? ' selected' : ''}>Nonaktif</option></select></div>`
@@ -395,15 +440,36 @@ function openParticipantForm(p = null) {
     onSave: async () => {
       const name = $('#fName').value.trim();
       if (!name) { toast('Nama wajib diisi', 'error'); return false; }
+      let id = p && p.id;
       if (p) {
         await api('/participants/' + p.id, { method: 'PUT', body: { name, jabatan: $('#fJabatan').value, status: $('#fStatus').value } });
-        toast('Data peserta diperbarui', 'success');
       } else {
         const created = await api('/participants', { method: 'POST', body: { name, jabatan: $('#fJabatan').value, code: $('#fCode').value.trim() } });
-        toast(`Peserta ditambahkan (${created.code}) — QR sudah dibuat`, 'success');
+        id = created.id;
       }
+      if (pendingPhoto) {
+        try { await api(`/participants/${id}/photo`, { method: 'POST', body: { image: pendingPhoto } }); } catch (e) { toast('Peserta tersimpan, tapi foto gagal diunggah: ' + e.message, 'gold'); }
+      } else if (removePhoto) {
+        try { await api(`/participants/${id}/photo`, { method: 'DELETE' }); } catch { /* bukan masalah besar */ }
+      }
+      toast(p ? 'Data peserta diperbarui' : 'Peserta ditambahkan — QR sudah dibuat', 'success');
       await loadParticipants();
     },
+  });
+  $('#fPhoto').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      pendingPhoto = await resizeImageToDataUrl(f, 480, 0.85);
+      removePhoto = false;
+      $('#fPhotoPreview').innerHTML = `<img src="${pendingPhoto}" alt="">`;
+    } catch (err) { toast(err.message || 'Gagal memproses gambar', 'error'); e.target.value = ''; }
+  });
+  $('#fPhotoRemove')?.addEventListener('click', () => {
+    pendingPhoto = null;
+    removePhoto = true;
+    $('#fPhoto').value = '';
+    $('#fPhotoPreview').innerHTML = 'Tanpa foto';
   });
 }
 $('#addEmployee').addEventListener('click', () => openParticipantForm());
@@ -480,6 +546,7 @@ async function printAllQr() {
     const list = S.participants.filter((p) => p.status === 'Aktif');
     if (!list.length) { w.close(); return toast('Belum ada peserta aktif.', 'error'); }
     const cards = list.map((p) => `<div class="card"><img alt="" src="${window.QRLite.toDataURL(p.qr_token, { size: 200 })}"><b>${esc(p.name)}</b><span>${esc(p.code)} · ${esc(p.jabatan)}</span></div>`).join('');
+    const watermark = printWatermarkHtml();
     w.document.open();
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Kartu QR Peserta</title><style>
       body{font-family:system-ui,sans-serif;margin:12mm;color:#111}
@@ -489,7 +556,7 @@ async function printAllQr() {
       .card img{width:100%;max-width:140px;image-rendering:pixelated}
       .card b{display:block;font-size:12px;margin-top:4px}.card span{font-size:10.5px;color:#555}
       @media print{@page{margin:10mm}}
-    </style></head><body><h1>Kartu QR Peserta — ${esc(S.settings.app_name)} (${list.length} peserta)</h1><div class="grid">${cards}</div></body></html>`);
+    </style></head><body>${watermark}<h1>Kartu QR Peserta — ${esc(S.settings.app_name)} (${list.length} peserta)</h1><div class="grid">${cards}</div></body></html>`);
     w.document.close();
     setTimeout(() => { try { w.focus(); w.print(); } catch { /* user bisa cetak manual */ } }, 700);
   } catch (err) { w.close(); toast(err.message, 'error'); }
@@ -717,6 +784,13 @@ async function applyReport() {
 }
 $('#applyReport').addEventListener('click', () => applyReport().catch((e) => toast(e.message, 'error')));
 
+// Watermark logo aplikasi di tengah halaman cetak (kartu QR & laporan), transparan dan tidak mengganggu cetakan.
+function printWatermarkHtml() {
+  if (!S.settings.logo_url) return '';
+  const abs = S.settings.logo_url.startsWith('http') ? S.settings.logo_url : location.origin + S.settings.logo_url;
+  return `<img src="${esc(abs)}" alt="" style="position:fixed;top:50%;left:50%;width:55vw;max-width:420px;transform:translate(-50%,-50%);opacity:.06;z-index:-1;pointer-events:none">`;
+}
+
 function reportHtml(rep) {
   const s = rep.summary;
   const rows = rep.rows.map((r) => `<tr><td>${esc(fmtDate(r.tanggal))}</td><td>${esc(r.event)}</td><td>${esc(r.code)}</td><td>${esc(r.name)}</td><td>${esc(r.jabatan)}</td><td>${esc(hm(r.jam))}</td><td class="${r.status === 'Hadir' ? 'ok' : r.status === 'Tidak hadir' ? 'bad' : 'mid'}">${esc(r.status)}</td></tr>`).join('');
@@ -727,7 +801,7 @@ function reportHtml(rep) {
     table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 6px;text-align:left}
     th{background:#0f5c3f;color:#fff}.ok{color:#157a51;font-weight:700}.bad{color:#d33;font-weight:700}.mid{color:#b8872b;font-weight:700}
     @media print{@page{size:A4;margin:10mm}thead{display:table-header-group}tr{break-inside:avoid}}
-  </style></head><body>
+  </style></head><body>${printWatermarkHtml()}
     <h1>Laporan Kehadiran — ${esc(S.settings.app_name)}</h1>
     <div class="meta">Periode ${esc(fmtDate(rep.from))} – ${esc(fmtDate(rep.to))}${rep.jabatan ? ' · Jabatan: ' + esc(rep.jabatan) : ''} · Dicetak ${esc(fmtDate(tzNow().date))} ${esc(tzNow().time.slice(0, 5))}</div>
     <div class="sum"><div>Hadir: <b>${s.hadir}</b></div><div>Tidak hadir: <b>${s.tidak_hadir}</b></div><div>Belum absen: <b>${s.belum_absen}</b></div><div>Event: <b>${s.events}</b></div></div>
@@ -765,10 +839,43 @@ async function exportReport(kind, fromDashboard) {
 }
 
 // ───────────────────────── pengaturan ─────────────────────────
+function renderLogoPreview() {
+  const box = $('#setLogoPreviewBox');
+  if (!box) return;
+  box.innerHTML = S.settings.logo_url ? `<img src="${esc(S.settings.logo_url)}" alt="Logo aplikasi">` : '<span class="sub">Belum ada logo</span>';
+}
+
 function initSettingsPage() {
   $('#setAppName').value = S.settings.app_name;
   $('#setTz').value = S.settings.timezone;
+  renderLogoPreview();
 }
+
+$('#setLogoInput')?.addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    const dataUrl = await resizeImageToDataUrl(f, 360, 0.88);
+    const res = await api('/settings/logo', { method: 'POST', body: { image: dataUrl } });
+    S.settings.logo_url = res.logo_url;
+    renderLogoPreview();
+    applyBrand();
+    toast('Logo aplikasi disimpan', 'success');
+  } catch (err) { toast(err.message || 'Gagal mengunggah logo', 'error'); }
+});
+
+$('#setLogoRemove')?.addEventListener('click', async () => {
+  if (!S.settings.logo_url) return toast('Belum ada logo untuk dihapus', 'gold');
+  if (!confirm('Hapus logo aplikasi?')) return;
+  try {
+    const res = await api('/settings/logo', { method: 'DELETE' });
+    S.settings.logo_url = res.logo_url;
+    renderLogoPreview();
+    applyBrand();
+    toast('Logo dihapus', 'gold');
+  } catch (err) { toast(err.message, 'error'); }
+});
 $('#saveSettings').addEventListener('click', async () => {
   try {
     S.settings = await api('/settings', { method: 'PUT', body: { app_name: $('#setAppName').value, timezone: $('#setTz').value } });
@@ -832,11 +939,17 @@ function setScanStatus(text, cls = '') {
   el.className = 'scanresult ' + cls;
 }
 
-function showScanOutcome(kind, title, detail) {
+// kind: 'ok' | 'warn' | 'err'. participant (opsional): {name, jabatan, code, photo_url} — data diri peserta,
+// ditampilkan di panel petugas begitu QR-nya berhasil dibaca (termasuk fotonya kalau admin sudah mengunggahnya).
+function showScanOutcome(kind, participant, detailLines) {
   const box = $('#scanBox');
   if (!box) return;
   box.className = 'scanbox ' + kind;
-  box.innerHTML = `<div class="scanicon">${kind === 'ok' ? '✓' : kind === 'warn' ? '!' : '×'}</div><div><strong>${esc(title)}</strong><small>${esc(detail)}</small></div>`;
+  const fallbackIcon = kind === 'ok' ? '✓' : kind === 'warn' ? '!' : '×';
+  const iconHtml = participant && participant.photo_url ? `<img src="${esc(participant.photo_url)}" alt="">` : fallbackIcon;
+  const name = participant ? participant.name : (kind === 'err' ? 'QR tidak dikenali' : 'Menunggu scan…');
+  const lines = (detailLines || []).filter(Boolean).map((t) => `<small>${esc(t)}</small>`).join('');
+  box.innerHTML = `<div class="scanicon">${iconHtml}</div><div><strong>${esc(name)}</strong>${lines}</div>`;
   beep(kind === 'ok');
 }
 
@@ -854,9 +967,13 @@ async function submitScan(value, source) {
       const c = $('#scanCount');
       if (c) c.textContent = `Berhasil di sesi ini: ${scanOkCount}`;
     }
-    showScanOutcome(res.code === 'OK' ? 'ok' : 'warn', res.participant.name, res.code === 'OK' ? `Absen tercatat pukul ${res.time.slice(0, 5)} · ${res.participant.code}` : `Sudah absen pukul ${res.time.slice(0, 5)}`);
+    const p = res.participant;
+    showScanOutcome(res.code === 'OK' ? 'ok' : 'warn', p, [
+      `${p.jabatan} · ${p.code}`,
+      res.code === 'OK' ? `Absen tercatat pukul ${res.time.slice(0, 5)}` : `Sudah absen pukul ${res.time.slice(0, 5)}`,
+    ]);
   } catch (err) {
-    showScanOutcome('err', err.code === 'QR_INVALID' ? 'QR tidak dikenali' : 'Absen ditolak', err.message);
+    showScanOutcome('err', null, [err.message]);
   } finally {
     scanBusy = false;
   }
@@ -944,7 +1061,11 @@ setInterval(() => {
 (async function boot() {
   try {
     const info = await fetch('/api/public/info').then((r) => r.json());
-    if (info && info.app_name) { S.settings.app_name = info.app_name; applyBrand(); }
+    if (info) {
+      if (info.app_name) S.settings.app_name = info.app_name;
+      S.settings.logo_url = info.logo_url || null;
+      applyBrand();
+    }
   } catch { /* abaikan */ }
   if (!S.token) return showLogin();
   try {

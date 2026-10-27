@@ -51,6 +51,19 @@ function cleanStr(v, max) {
 
 const escapeLike = (s) => String(s).replace(/[\\%_]/g, (c) => '\\' + c);
 
+// Decode data-URL gambar (dari <input type=file> yang sudah di-resize di browser).
+// Hanya menerima jpeg/png/webp, dan membatasi ukuran biner hasil decode.
+const IMAGE_EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+function decodeImageDataUrl(dataUrl, maxBytes) {
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,([a-zA-Z0-9+/=]+)$/.exec(String(dataUrl || '').trim());
+  if (!m) return null;
+  const ext = IMAGE_EXT[m[1]];
+  let buf;
+  try { buf = Buffer.from(m[2], 'base64'); } catch { return null; }
+  if (!buf.length || buf.length > maxBytes) return null;
+  return { ext, buffer: buf };
+}
+
 // Pembatas laju sederhana (sliding window, in-memory)
 function makeLimiter(max, windowMs) {
   const hits = new Map();
@@ -67,4 +80,4 @@ function makeLimiter(max, windowMs) {
   };
 }
 
-module.exports = { HttpError, httpError, nowParts, eventState, isValidDate, isValidTime, cleanStr, escapeLike, makeLimiter };
+module.exports = { HttpError, httpError, nowParts, eventState, isValidDate, isValidTime, cleanStr, escapeLike, makeLimiter, decodeImageDataUrl };
