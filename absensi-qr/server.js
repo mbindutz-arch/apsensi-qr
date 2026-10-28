@@ -692,7 +692,13 @@ function createApp(opts = {}) {
 
 module.exports = { createApp };
 
-if (require.main === module) {
+// Jalankan server otomatis saat file ini di-load sebagai entry point, KECUALI secara eksplisit
+// dimatikan (dipakai oleh test/api.test.js lewat AUTOSTART=0 sebelum require('../server')).
+// Sengaja TIDAK memakai `require.main === module`: sejumlah platform hosting (termasuk Hostinger)
+// menjalankan entry file dengan cara require()/import, bukan `node server.js` langsung — dengan
+// require.main===module, .listen() tidak akan pernah terpanggil di platform seperti itu dan
+// aplikasi terlihat "hang" (503) walau prosesnya hidup.
+if (process.env.AUTOSTART !== '0') {
   const port = Number(process.env.PORT || 3000);
   const host = process.env.HOST || '0.0.0.0';
   const app = createApp();

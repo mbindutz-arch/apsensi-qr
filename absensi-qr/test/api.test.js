@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+process.env.AUTOSTART = '0'; // cegah server.js ikut listen() otomatis saat di-require di sini (lihat server.js)
 const { createApp } = require('../server');
 const { nowParts } = require('../src/util');
 
