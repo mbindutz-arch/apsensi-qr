@@ -1057,6 +1057,14 @@ setInterval(() => {
   refreshCurrentSilently();
 }, 8000);
 
+// Daftarkan service worker (dipakai untuk PWA/TWA — lihat public/service-worker.js).
+// Gagal daftar (mis. browser lama atau dibuka lewat http:// non-localhost) tidak boleh menghentikan aplikasi.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').catch(() => { /* abaikan, aplikasi tetap jalan tanpa SW */ });
+  });
+}
+
 // ───────────────────────── mulai ─────────────────────────
 (async function boot() {
   try {
